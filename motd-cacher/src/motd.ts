@@ -1,11 +1,15 @@
 import { randomUUID } from "crypto";
 import pkg, { type NewPingResult } from "minecraft-protocol";
+import { SocksClient } from "socks";
 import { Chat } from "./eaglerproxy/Chat.js";
 import { generateEaglerMOTDImage } from "./util.js";
 const { ping } = pkg;
 
 const BRAND = 'motd-cacher', FULL_VERSION = `${BRAND}/67.41`
 const IMAGE_DATA_PREPEND = "data:image/png;base64,"
+
+const SOCKS5_HOST = process.env.SOCKS5_HOST || "127.0.0.1";
+const SOCKS5_PORT = parseInt(process.env.SOCKS5_PORT || "40000");
 
 export namespace Motd {
   export class MOTD {
@@ -19,7 +23,22 @@ export namespace Motd {
 
     public static async generateMOTDFromPing(host: string, port: number): Promise<MOTD> {
       const pingStart = performance.now();
-      const pingRes = await ping({ host: host, port: port });
+      const pingRes = await (ping as Function)({
+        host: host,
+        port: port,
+        connect: (client: any) => {
+          SocksClient.createConnection({
+            proxy: { host: SOCKS5_HOST, port: SOCKS5_PORT, type: 5 },
+            command: "connect",
+            destination: { host: host, port: port },
+          }).then(({ socket }) => {
+            client.setSocket(socket);
+            client.emit("connect");
+          }).catch((err: any) => {
+            client.emit("error", err);
+          });
+        },
+      });
       const pingMs = performance.now() - pingStart;
 
       if (typeof pingRes.version == "string") throw new Error("Non-1.8 server detected!");

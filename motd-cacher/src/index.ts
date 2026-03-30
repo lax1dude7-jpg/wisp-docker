@@ -26,31 +26,6 @@ setInterval(() => {
     }
 }, CACHE_TTL_MS)
 
-const PING_TIMEOUT_MS = 3_000
-const PING_MAX_ATTEMPTS = 3
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-    return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms)
-        promise.then(
-            v => { clearTimeout(timer); resolve(v) },
-            e => { clearTimeout(timer); reject(e) },
-        )
-    })
-}
-
-async function fetchMOTDWithRetry(host: string, port: number): Promise<[string, Buffer]> {
-    for (let attempt = 1; attempt <= PING_MAX_ATTEMPTS; attempt++) {
-        try {
-            return (await withTimeout(Motd.MOTD.generateMOTDFromPing(host, port), PING_TIMEOUT_MS)).toBuffer()
-        } catch (err) {
-            console.error(`[${host}:${port}] attempt ${attempt}/${PING_MAX_ATTEMPTS} failed:`, err)
-            if (attempt === PING_MAX_ATTEMPTS) throw err
-        }
-    }
-    throw new Error("unreachable")
-}
-
 const TRUST_FORWARDED_IP = true
 
 wss.on('connection', async (ws, request) => {
@@ -108,7 +83,7 @@ wss.on('connection', async (ws, request) => {
                     image = hit.image
                 } else {
                     cache.delete(key)
-                    const fetch = await fetchMOTDWithRetry(host, port)
+                    const fetch = (await Motd.MOTD.generateMOTDFromPing(host, port)).toBuffer()
                     const parsed = JSON.parse(fetch[0])
                     parsed.cache_hit = 'MISS'
                     motd = JSON.stringify(parsed)
