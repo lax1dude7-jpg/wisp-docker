@@ -9,7 +9,7 @@ import BucketRateLimiter from "./ratelimit.js";
 const wss = new WebSocketServer({
     port: 3000
 })
-const ratelimit = new BucketRateLimiter(120, 60)
+// const ratelimit = new BucketRateLimiter(120, 60)
 // const redis = new Redis()
 
 // redis.on('error', err => {
@@ -40,11 +40,11 @@ wss.on('connection', async (ws, request) => {
             ((request.headers['x-forwarded-for'] as string)?.split(',')[0] ||
                 request.socket.remoteAddress!) : request.socket.remoteAddress!;
         
-        if (!ratelimit.consume(ip, 1).success) {
-            ws.close()
-            handled = true
-            return
-        }
+        // if (!ratelimit.consume(ip, 1).success) {
+        //     ws.close()
+        //     handled = true
+        //     return
+        // }
 
         // find the server ip
         const url = new URL("http://urmom" + request.url).searchParams.get("fullHost")
