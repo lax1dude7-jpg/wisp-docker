@@ -1,8 +1,5 @@
 [server]
-bind = [
-    "tcp",
-    "0.0.0.0:80",
-]
+bind = ["tcp", "0.0.0.0:8000"]
 transport = "websocket"
 resolve_ipv6 = false
 tcp_nodelay = true
@@ -18,10 +15,7 @@ allow_wsproxy = true
 buffer_size = 128
 prefix = ""
 wisp_v2 = true
-extensions = [
-    "udp",
-    "motd",
-]
+extensions = ["udp", "motd"]
 password_extension_required = true
 certificate_extension_required = false
 read_limit = 10000000
