@@ -145,6 +145,8 @@ export function createUI() {
             .settings-ui .checkbox-wrapper {
                 position: relative;
                 display: inline-block;
+                width: 18px;
+                height: 18px;
             }
 
             .settings-ui .checkbox-wrapper input {
@@ -311,12 +313,14 @@ export function createUI() {
                     <input class="input" id="wisp_url" placeholder="wss://us-east.wisp.q13x.com/" />
                     <p>For the best ping and performance, go <a class="link" target="_blank" href="/settings/wisp_select.html">here</a> to select the closest region. Remember to refresh this page after selecting a region.</p>
                     <p id="save_status"><br /></p>
-                    <p>MOTD Cacher</p>
-                    <label class="checkbox-wrapper">
-                        <input type="checkbox" id="force_motd_cacher" />
-                        <span class="checkbox-mark"></span>
-                    </label>
-                    <p style="margin-top: 0.5rem;">Force MOTD Caching for all servers (normally only used for *.wisp.q13x.com domains)</p>
+                    <div style="display:flex;align-items:center;gap:0.625rem;">
+                        <label class="checkbox-wrapper" style="flex-shrink:0;">
+                            <input type="checkbox" id="force_motd_cacher" />
+                            <span class="checkbox-mark"></span>
+                        </label>
+                        <label for="force_motd_cacher" style="cursor:pointer;padding-left:0.25rem;">Force MOTD Caching for all servers</label>
+                    </div>
+                    <p style="font-size:0.8rem;color:#6c7086;">Normally only used for *.wisp.q13x.com servers. Enables the MOTD cache proxy for every server in the list.</p>
                     <p>Microsoft Accounts</p>
                     <select name="accounts" id="account_select" class="select">
                         <option selected disabled>Choose an account</option>

@@ -8,6 +8,7 @@ export const VERSION = self.VERSION;
 export const COMMITHASH = self.COMMITHASH;
 
 export let wispUrl: string;
+export let usingDefaultWisp = false;
 
 export type AuthStore = {
 	user: UserInfo | null;
@@ -63,7 +64,12 @@ wispUrl =
 	((window as any).anura && (window as any).anura.wsproxyURL) ||
 	new URL(window.location.href).searchParams.get("wisp") ||
 	localStorage["wispcraft_wispurl"] ||
-	"wss://us-east.wisp.q13x.com/";
+	"";
+
+if (!wispUrl) {
+	wispUrl = "wss://us-east.wisp.q13x.com/";
+	usingDefaultWisp = true;
+}
 
 try {
 	setWispUrl(wispUrl);
@@ -105,48 +111,6 @@ window.fetch = async function (url: RequestInfo | URL, init?: RequestInit) {
 		return await epoxyFetch("" + url, init);
 	}
 };
-
-type EaglerXOptions = any;
-let eagoptions: EaglerXOptions;
-// append settings to the server list
-const settings = { addr: "settings://", name: "Wispcraft Settings" };
-let relayId = Math.floor(Math.random() * 3);
-Object.defineProperty(window, "eaglercraftXOpts", {
-	get() {
-		if (eagoptions) {
-			return eagoptions;
-		}
-		return {
-			container: "game_frame",
-			worldsDB: "worlds",
-			relays: [
-				{
-					addr: "wss://relay.deev.is/",
-					comment: "lax1dude relay #1",
-					primary: relayId == 0,
-				},
-				{
-					addr: "wss://relay.lax1dude.net/",
-					comment: "lax1dude relay #2",
-					primary: relayId == 1,
-				},
-				{
-					addr: "wss://relay.shhnowisnottheti.me/",
-					comment: "ayunami relay #1",
-					primary: relayId == 2,
-				},
-			],
-		};
-	},
-	set(v) {
-		eagoptions = v;
-		if (eagoptions?.servers) {
-			eagoptions.servers.unshift(settings);
-		} else {
-			eagoptions.servers = [settings];
-		}
-	},
-});
 
 initWisp(wispUrl);
 

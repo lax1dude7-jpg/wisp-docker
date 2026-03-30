@@ -4,7 +4,7 @@ import {
 	EpoxyWebSocketInput,
 } from "@mercuryworkshop/epoxy-tls";
 import { Connection } from ".";
-import { authstore, COMMITHASH, VERSION, wispUrl, wispcraftSettings } from "..";
+import { authstore, COMMITHASH, usingDefaultWisp, VERSION, wispUrl, wispcraftSettings } from "..";
 import { Buffer } from "../buffer";
 import { showUI } from "../ui";
 import { epoxyWs } from "./epoxy";
@@ -21,11 +21,70 @@ function isWispDomain(hostname: string): boolean {
 	return false;
 }
 
+const WISP_PROMPT_DISMISSED_KEY = "wispcraft_wisp_prompt_dismissed";
+
+function showWispServerPrompt() {
+	if (!usingDefaultWisp || localStorage[WISP_PROMPT_DISMISSED_KEY]) return;
+
+	const overlay = document.createElement("div");
+	Object.assign(overlay.style, {
+		position: "fixed", inset: "0", zIndex: "9999",
+		background: "rgba(0,0,0,0.6)", display: "flex",
+		alignItems: "center", justifyContent: "center",
+	});
+
+	const box = document.createElement("div");
+	Object.assign(box.style, {
+		background: "#020817", border: "1px solid #1E293B",
+		borderRadius: "0.75rem", padding: "1.5rem", maxWidth: "26rem",
+		color: "#F8FAFC", fontFamily: "Inter, sans-serif",
+		display: "flex", flexDirection: "column", gap: "1rem",
+	});
+
+	const title = document.createElement("h2");
+	Object.assign(title.style, { margin: "0", fontSize: "1.125rem" });
+	title.textContent = "Select a Wisp Server";
+
+	const msg = document.createElement("p");
+	Object.assign(msg.style, { margin: "0", fontSize: "0.875rem", color: "#94A3B8", lineHeight: "1.5" });
+	msg.textContent = "You're using the default Wisp server. For optimal performance, select a server closer to your location.";
+
+	const btnRow = document.createElement("div");
+	Object.assign(btnRow.style, { display: "flex", gap: "0.5rem", justifyContent: "flex-end" });
+
+	const dismiss = document.createElement("button");
+	Object.assign(dismiss.style, {
+		background: "transparent", color: "#94A3B8", border: "1px solid #1E293B",
+		borderRadius: "6px", padding: "8px 14px", fontSize: "14px", cursor: "pointer",
+	});
+	dismiss.textContent = "Don't show again";
+	dismiss.onclick = () => {
+		localStorage[WISP_PROMPT_DISMISSED_KEY] = "1";
+		overlay.remove();
+	};
+
+	const select = document.createElement("button");
+	Object.assign(select.style, {
+		background: "#3C82F6", color: "#0F172A", border: "none",
+		borderRadius: "6px", padding: "8px 14px", fontSize: "14px", cursor: "pointer",
+	});
+	select.textContent = "Select Server";
+	select.onclick = () => {
+		window.open("/settings/wisp_select.html", "_blank");
+		overlay.remove();
+	};
+
+	btnRow.append(dismiss, select);
+	box.append(title, msg, btnRow);
+	overlay.append(box);
+	document.body.append(overlay);
+}
+
 class WispWS extends EventTarget {
 	inner: Connection;
 	url: string;
 	readyState: number;
-	hostname: string;
+	serverUrl: URL;
 	motdCacherWs: WebSocket | null = null;
 
 	constructor(uri: string) {
@@ -34,7 +93,8 @@ class WispWS extends EventTarget {
 		this.url = uri;
 		this.inner = new Connection(uri, authstore);
 		this.readyState = WebSocket.CONNECTING;
-		this.hostname = new URL(uri).hostname;
+		// URI is "wss://java://host:port" — strip outer scheme to parse "java://host:port"
+		this.serverUrl = new URL(uri.slice(uri.toLowerCase().indexOf("://") + 3));
 	}
 
 	start() {
@@ -68,13 +128,16 @@ class WispWS extends EventTarget {
 		let buf: Buffer;
 		if (typeof chunk == "string") {
 			if (chunk.toLowerCase() == "accept: motd") {
-				// Check if we should use motd-cacher
-				const shouldUseMotdCacher = isWispDomain(this.hostname) || wispcraftSettings.forceMotdCacher;
+				const shouldUseMotdCacher = isWispDomain(new URL(wispUrl).hostname) || wispcraftSettings.forceMotdCacher;
 
 				if (shouldUseMotdCacher) {
-					// Redirect to motd-cacher service
-					const motdCacherUrl = `${window.location.protocol}//${window.location.host}/proxy-motd`;
-					this.motdCacherWs = new WebSocket(motdCacherUrl);
+					const fullHost = this.serverUrl.port
+						? `${this.serverUrl.hostname}:${this.serverUrl.port}`
+						: this.serverUrl.hostname;
+					const wispBase = new URL(wispUrl);
+					wispBase.pathname = "/proxy-motd";
+					wispBase.searchParams.set("fullHost", fullHost);
+					this.motdCacherWs = new NativeWebSocket(wispBase.href);
 
 					this.motdCacherWs.onopen = () => {
 						this.readyState = WebSocket.OPEN;
@@ -106,6 +169,8 @@ class WispWS extends EventTarget {
 		} else {
 			buf = new Buffer(chunk, true);
 		}
+
+		showWispServerPrompt();
 
 		if (
 			this.url.includes("hypixel.net") &&

@@ -4,25 +4,15 @@ import * as crypto from "crypto"
 
 const ICON_SQRT = 64
 export function generateEaglerMOTDImage(file: string | Buffer): Promise<Buffer> {
-    return new Promise<Buffer>((res, rej) => {
-        sharp(file)
-            .resize(ICON_SQRT, ICON_SQRT, {
-                kernel: "nearest",
-            })
-            .raw({
-                depth: "uchar",
-            })
-            .toBuffer()
-            .then((buff) => {
-                for (const pixel of buff) {
-                    if ((pixel & 0xffffff) == 0) {
-                        buff[buff.indexOf(pixel)] = 0;
-                    }
-                }
-                res(buff);
-            })
-            .catch(rej);
-    });
+    return sharp(file)
+        .resize(ICON_SQRT, ICON_SQRT, {
+            kernel: "nearest",
+        })
+        .ensureAlpha()
+        .raw({
+            depth: "uchar",
+        })
+        .toBuffer();
 }
 
 export function awaitPacket(ws: WebSocket, filter?: (msg: Buffer) => boolean): Promise<Buffer> {
