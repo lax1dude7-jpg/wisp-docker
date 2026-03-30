@@ -12,9 +12,7 @@
   "dependencies": {
     "@thi.ng/leb128": "^3.1.82",
     "@types/ws": "^8.18.1",
-    "ioredis": "^5.10.1",
     "minecraft-protocol": "^1.64.1",
-    "msgpackr": "^1.11.9",
     "sharp": "^0.34.5",
     "typescript": "^6.0.2",
     "ws": "^8.20.0"

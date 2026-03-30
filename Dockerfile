@@ -3,7 +3,7 @@ FROM alpine:latest
 EXPOSE 80
 
 # set up redis for motd caching
-RUN apk add --update redis
+# RUN apk add --update redis
 
 # nginx
 RUN apk add nginx
