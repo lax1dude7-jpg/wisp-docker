@@ -6,5 +6,5 @@ wireproxy -c /data/wireproxy.conf &
 sleep 2
 
 (cd /app/motd/dist && node index.js) &
-/app/epoxy/epoxy-server --format toml /app/epoxy/config.toml &
+proxychains -f /etc/proxychains.conf /app/epoxy/epoxy-server --format toml /app/epoxy/config.toml &
 nginx -g "daemon off;"
