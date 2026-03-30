@@ -1,5 +1,5 @@
 #!/bin/sh
-# redis-server --bind 127.0.0.1 --maxmemory 64mb --maxmemory-policy allkeys-lru --protected-mode no --daemonize yes &
+redis-server --bind 127.0.0.1 --maxmemory 64mb --maxmemory-policy allkeys-lru --protected-mode no --daemonize yes &
 
 /app/warp-setup.sh
 wireproxy -c /data/wireproxy.conf &

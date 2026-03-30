@@ -15,8 +15,8 @@ FROM alpine:latest
 
 EXPOSE 80
 
-# set up redis for motd caching
-# RUN apk add --update redis
+# redis for motd caching
+RUN apk add --update redis
 
 # runtime deps for dynamically-linked epoxy-server + proxychains
 RUN apk add --no-cache libgcc libstdc++ proxychains-ng

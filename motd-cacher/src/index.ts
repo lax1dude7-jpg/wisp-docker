@@ -3,28 +3,18 @@ import { awaitPacket, hashServer } from "./util.js";
 import { Motd } from "./motd.js"
 import { URLSearchParams } from "url";
 import BucketRateLimiter from "./ratelimit.js";
-// import { pack, unpack } from "msgpackr";
-// import { Redis } from "ioredis";
+import { pack, unpack } from "msgpackr";
+import { Redis } from "ioredis";
 
 const wss = new WebSocketServer({
     port: 3000
 })
 const ratelimit = new BucketRateLimiter(120, 60)
-// const redis = new Redis()
+const redis = new Redis()
 
-// redis.on('error', err => {
-//     console.log("redis error", err)
-// })
-
-const cache = new Map<string, { motd: string, image: Buffer, expires: number }>()
-const CACHE_TTL_MS = 45_000
-
-setInterval(() => {
-    const now = Date.now()
-    for (const [key, entry] of cache) {
-        if (entry.expires <= now) cache.delete(key)
-    }
-}, CACHE_TTL_MS)
+redis.on('error', err => {
+    console.error("redis error", err)
+})
 
 const TRUST_FORWARDED_IP = true
 
@@ -73,22 +63,25 @@ wss.on('connection', async (ws, request) => {
 
         if (/^accept: motd/i.test(initial.toString()) && !handled) {
             try {
-                const key = hashServer(host, port)
-                const hit = cache.get(key)
+                const key = hashServer(host, port), hit = await redis.getBuffer(key)
                 let motd: string, image: Buffer
-                if (hit && hit.expires > Date.now()) {
-                    const parsed = JSON.parse(hit.motd)
-                    parsed.cache_hit = 'HIT'
-                    motd = JSON.stringify(parsed)
-                    image = hit.image
+                if (hit) {
+                    const unpacked = unpack(hit) as ReturnType<Motd.MOTD['toBuffer']>
+                    {
+                        const parsed = JSON.parse(unpacked[0])
+                        parsed.cache_hit = 'HIT'
+                        motd = JSON.stringify(parsed)
+                    }
+                    image = unpacked[1]
                 } else {
-                    cache.delete(key)
                     const fetch = (await Motd.MOTD.generateMOTDFromPing(host, port)).toBuffer()
-                    const parsed = JSON.parse(fetch[0])
-                    parsed.cache_hit = 'MISS'
-                    motd = JSON.stringify(parsed)
+                    {
+                        const parsed = JSON.parse(fetch[0])
+                        parsed.cache_hit = 'MISS'
+                        motd = JSON.stringify(parsed)
+                    }
+                    await redis.set(key, pack(fetch), 'EX', 15)
                     image = fetch[1]
-                    cache.set(key, { motd: fetch[0], image, expires: Date.now() + CACHE_TTL_MS })
                 }
                 if (!handled) {
                     ws.send(motd)
