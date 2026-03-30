@@ -96,16 +96,17 @@ wss.on('connection', async (ws, request) => {
                     ws.close()
                 }
             } catch (err) {
+                console.error(`[${host}:${port}] MOTD fetch failed:`, err)
                 ws.close()
                 handled = true
             }
         } else {
-            ws.close() // only serving motds here
+            ws.close()
             handled = true
         }
 
     } catch (err) {
-        console.log(err)
+        console.error("[connection] unhandled error:", err)
         ws.close()
     }
 })
