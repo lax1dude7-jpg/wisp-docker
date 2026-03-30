@@ -17,7 +17,7 @@ const ratelimit = new BucketRateLimiter(120, 60)
 // })
 
 const cache = new Map<string, { motd: string, image: Buffer, expires: number }>()
-const CACHE_TTL_MS = 15_000
+const CACHE_TTL_MS = 45_000
 
 setInterval(() => {
     const now = Date.now()
