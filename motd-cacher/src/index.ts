@@ -40,8 +40,6 @@ wss.on('connection', async (ws, request) => {
             ((request.headers['x-forwarded-for'] as string)?.split(',')[0] ||
                 request.socket.remoteAddress!) : request.socket.remoteAddress!;
         
-        console.log("ip", ip)
-
         if (!ratelimit.consume(ip, 1).success) {
             ws.close()
             handled = true

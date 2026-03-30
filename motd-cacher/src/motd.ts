@@ -18,16 +18,24 @@ export namespace Motd {
     }
 
     public static async generateMOTDFromPing(host: string, port: number): Promise<MOTD> {
+      const pingStart = performance.now();
       const pingRes = await ping({ host: host, port: port });
+      const pingMs = performance.now() - pingStart;
+
       if (typeof pingRes.version == "string") throw new Error("Non-1.8 server detected!");
       else {
         const newPingRes = pingRes as NewPingResult;
         let image: Buffer;
+        let imageMs = 0;
 
         if (newPingRes.favicon != null) {
           if (!newPingRes.favicon.startsWith(IMAGE_DATA_PREPEND)) throw new Error("Invalid MOTD image!");
+          const imageStart = performance.now();
           image = await generateEaglerMOTDImage(Buffer.from(newPingRes.favicon.substring(IMAGE_DATA_PREPEND.length), "base64"))
+          imageMs = performance.now() - imageStart;
         }
+
+        console.log(`[${host}:${port}] ping: ${pingMs.toFixed(1)}ms, image: ${imageMs.toFixed(1)}ms`);
 
         return new MOTD(
           {
