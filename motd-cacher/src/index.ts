@@ -29,6 +29,8 @@ wss.on('connection', async (ws, request) => {
         const ip = TRUST_FORWARDED_IP ?
             ((request.headers['x-forwarded-for'] as string)?.split(',')[0] ||
                 request.socket.remoteAddress!) : request.socket.remoteAddress!;
+        
+        console.log("ip", ip)
 
         if (!ratelimit.consume(ip, 1).success) {
             ws.close()

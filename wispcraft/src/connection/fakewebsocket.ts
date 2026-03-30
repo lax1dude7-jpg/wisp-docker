@@ -22,9 +22,12 @@ function isWispDomain(hostname: string): boolean {
 }
 
 const WISP_PROMPT_DISMISSED_KEY = "wispcraft_wisp_prompt_dismissed";
+let wispPromptShown = false;
 
 function showWispServerPrompt() {
-	if (!usingDefaultWisp || localStorage[WISP_PROMPT_DISMISSED_KEY]) return;
+	if (wispPromptShown || !usingDefaultWisp || localStorage[WISP_PROMPT_DISMISSED_KEY]) return;
+	wispPromptShown = true;
+	localStorage[WISP_PROMPT_DISMISSED_KEY] = "1";
 
 	const overlay = document.createElement("div");
 	Object.assign(overlay.style, {
@@ -137,17 +140,21 @@ class WispWS extends EventTarget {
 					const wispBase = new URL(wispUrl);
 					wispBase.pathname = "/proxy-motd";
 					wispBase.searchParams.set("fullHost", fullHost);
-					this.motdCacherWs = new NativeWebSocket(wispBase.href);
+				this.motdCacherWs = new NativeWebSocket(wispBase.href);
+				this.motdCacherWs.binaryType = "arraybuffer";
 
-					this.motdCacherWs.onopen = () => {
+				this.motdCacherWs.onopen = () => {
 						this.readyState = WebSocket.OPEN;
 						this.dispatchEvent(new Event("open"));
 						this.motdCacherWs!.send(chunk);
 					};
 
-					this.motdCacherWs.onmessage = (event) => {
-						this.dispatchEvent(new MessageEvent("message", { data: event.data }));
-					};
+				this.motdCacherWs.onmessage = (event) => {
+					const data = event.data instanceof ArrayBuffer
+						? new Uint8Array(event.data)
+						: event.data;
+					this.dispatchEvent(new MessageEvent("message", { data }));
+				};
 
 					this.motdCacherWs.onerror = () => {
 						this.dispatchEvent(new Event("error"));
