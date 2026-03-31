@@ -147,7 +147,8 @@ export class EaglerProxy {
 		epoxyOut: BytesWriter,
 		public serverAddress: string,
 		public serverPort: number,
-		public authStore: AuthStore
+		public authStore: AuthStore,
+		public requireOnline: boolean
 	) {
 		this.net = epoxyOut;
 		this.eagler = eaglerOut;
@@ -177,11 +178,18 @@ export class EaglerProxy {
 						}
 						this.eagler.write(fakever);
 						return;
-					case Serverbound.EAG_RequestLogin:
-						let username = packet.readString();
-						this.offlineUsername = username;
+				case Serverbound.EAG_RequestLogin:
+					let username = packet.readString();
+					this.offlineUsername = username;
 
-						let fakelogin = new Packet(Clientbound.EAG_AllowLogin);
+					if (this.requireOnline && this.authStore.user == null) {
+						const reason =
+							"This server requires a Microsoft account.\n Connect to Wispcraft Settings to log in.";
+						this.eagler.write(createEagKick(reason));
+						return;
+					}
+
+					let fakelogin = new Packet(Clientbound.EAG_AllowLogin);
 						if (this.authStore.user) {
 							fakelogin.writeString(this.authStore.user.name);
 							fakelogin.writeBytes(

@@ -320,7 +320,7 @@ export function createUI() {
                         </label>
                         <label for="force_motd_cacher" style="cursor:pointer;padding-left:0.25rem;">Force MOTD Caching for all servers</label>
                     </div>
-                    <p style="font-size:0.8rem;color:#6c7086;">Normally only used for *.wisp.q13x.com servers. Enables the MOTD cache proxy for every server in the list.</p>
+                    <p style="font-size:0.8rem;color:#6c7086;">Normally only used for custom Wisp servers supporting MOTD caching. Enables the MOTD cache proxy for every server in the list.</p>
                     <p>Microsoft Accounts</p>
                     <select name="accounts" id="account_select" class="select">
                         <option selected disabled>Choose an account</option>

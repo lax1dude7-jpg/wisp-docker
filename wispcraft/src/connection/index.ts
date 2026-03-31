@@ -98,6 +98,9 @@ export class Connection {
 		const writer = bufferWriter(conn.write.getWriter());
 		this.rawEpoxy = writer.getWriter();
 
+		const requireOnlineVal = this.url.searchParams.get("require_online");
+		const requireOnline = !!requireOnlineVal && requireOnlineVal !== "0" && requireOnlineVal.toLowerCase() !== "false";
+
 		const impl = new EaglerProxy(
 			this.processOut,
 			writeTransform(this.rawEpoxy, async (p: Buffer) => {
@@ -109,7 +112,8 @@ export class Connection {
 			}).getWriter(),
 			this.url.hostname,
 			this.url.port ? parseInt(this.url.port) : 25565,
-			this.authStore
+			this.authStore,
+			requireOnline
 		);
 
 		// epoxy -> process -> (hopefully) eagler task
