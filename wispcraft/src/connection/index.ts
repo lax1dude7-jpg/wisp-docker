@@ -11,7 +11,7 @@ import {
 	lengthTransformer,
 	writeTransform,
 } from "./framer";
-import type { AuthStore } from "..";
+import { authReady, type AuthStore } from "..";
 
 function link<T>(): [ReadableStream<T>, WritableStream<T>] {
 	let readController: ReadableStreamDefaultController<T>;
@@ -73,6 +73,44 @@ export class Connection {
 	}
 
 	async forward(connectcallback: () => void) {
+		const requireOnlineVal = this.url.searchParams.get("require_online");
+		const requireOnline = !!requireOnlineVal && requireOnlineVal !== "0" && requireOnlineVal.toLowerCase() !== "false";
+
+		if (requireOnline) {
+			await authReady;
+			if (this.authStore.user == null) {
+				connectcallback();
+
+				const sinkWriter = new WritableStream<Buffer>().getWriter();
+				const impl = new EaglerProxy(
+					this.processOut,
+					sinkWriter,
+					this.url.hostname,
+					this.url.port ? parseInt(this.url.port) : 25565,
+					this.authStore,
+					requireOnline
+				);
+
+				(async () => {
+					let backlog = 0;
+					const reader = eagerlyPoll<Buffer>(
+						this.processIn,
+						100,
+						() => backlog++
+					).getReader();
+
+					while (true) {
+						const { done, value } = await reader.read();
+						if (done || !value) return;
+						await impl.eaglerRead(value);
+						backlog--;
+					}
+				})();
+				this.impl = impl;
+				return;
+			}
+		}
+
 		let connectUrl: URL | undefined;
 		try {
 			const dns = await epoxyFetch(
@@ -97,9 +135,6 @@ export class Connection {
 		connectcallback();
 		const writer = bufferWriter(conn.write.getWriter());
 		this.rawEpoxy = writer.getWriter();
-
-		const requireOnlineVal = this.url.searchParams.get("require_online");
-		const requireOnline = !!requireOnlineVal && requireOnlineVal !== "0" && requireOnlineVal.toLowerCase() !== "false";
 
 		const impl = new EaglerProxy(
 			this.processOut,

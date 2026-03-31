@@ -13,7 +13,7 @@ import {
 import { handleSkinCape } from "./skins";
 import "./auth";
 import { joinServer } from "./auth";
-import { VERSION, type AuthStore } from ".";
+import { VERSION, authReady, type AuthStore } from ".";
 // import { authstore } from "./index";
 
 // https://minecraft.wiki/w/Protocol?oldid=2772100
@@ -182,11 +182,14 @@ export class EaglerProxy {
 					let username = packet.readString();
 					this.offlineUsername = username;
 
-					if (this.requireOnline && this.authStore.user == null) {
-						const reason =
-							"This server requires a Microsoft account.\n Connect to Wispcraft Settings to log in.";
-						this.eagler.write(createEagKick(reason));
-						return;
+					if (this.requireOnline) {
+						await authReady;
+						if (this.authStore.user == null) {
+							const reason =
+								"This server requires a Microsoft account.\n Connect to Wispcraft Settings to log in.";
+							this.eagler.write(createEagKick(reason));
+							return;
+						}
 					}
 
 					let fakelogin = new Packet(Clientbound.EAG_AllowLogin);

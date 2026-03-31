@@ -77,6 +77,8 @@ try {
 	console.error(e);
 }
 
+export let authReady: Promise<void> = Promise.resolve();
+
 if (localStorage["wispcraft_accounts"]) {
 	const accounts = JSON.parse(
 		localStorage["wispcraft_accounts"]
@@ -86,7 +88,7 @@ if (localStorage["wispcraft_accounts"]) {
 			account.username === localStorage["wispcraft_last_used_account"]
 	);
 	if (account) {
-		(async () => {
+		authReady = (async () => {
 			try {
 				authstore.msToken = account.ms;
 				authstore.yggToken = account.token;
